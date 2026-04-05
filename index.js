@@ -61,6 +61,7 @@ app.post('/transcribe', upload.single('audio'), async (req, res) => {
   }
 });
 
+// TTS — use alloy voice which handles Georgian script better
 app.post('/speak', async (req, res) => {
   try {
     const key = getKey(req);
@@ -69,10 +70,10 @@ app.post('/speak', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
-        model: 'tts-1',
+        model: 'tts-1-hd',
         input: text,
-        voice: 'onyx',
-        speed: 0.95,
+        voice: 'shimmer',
+        speed: 0.9,
         response_format: 'mp3'
       })
     });
