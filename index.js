@@ -5,7 +5,7 @@ const multer = require('multer');
 const FormData = require('form-data');
 
 const app = express();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -27,50 +27,57 @@ app.post('/chat', async (req, res) => {
 
 app.post('/transcribe', upload.single('audio'), async (req, res) => {
   try {
+    if (!req.file) { return res.status(400).json({ error: 'No audio received' }); }
+    console.log('Audio size:', req.file.size, 'type:', req.file.mimetype);
+
     const form = new FormData();
-    const ext = req.file.mimetype.includes('mp4') ? 'mp4' : 'webm';
-    form.append('file', req.file.buffer, { filename: `voice.${ext}`, contentType: req.file.mimetype });
+    // Try all common Android formats
+    let filename = 'voice.webm';
+    if (req.file.mimetype.includes('mp4') || req.file.mimetype.includes('m4a')) filename = 'voice.mp4';
+    else if (req.file.mimetype.includes('ogg')) filename = 'voice.ogg';
+    else if (req.file.mimetype.includes('wav')) filename = 'voice.wav';
+
+    form.append('file', req.file.buffer, { filename, contentType: req.file.mimetype });
     form.append('model', 'whisper-1');
-    form.append('language', 'ka');
+    // No language lock — let Whisper detect automatically (works better for testing)
+    form.append('response_format', 'json');
+
     const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${KEY}`, ...form.getHeaders() },
       body: form
     });
-    res.json(await r.json());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    const result = await r.json();
+    console.log('Whisper result:', result);
+    res.json(result);
+  } catch (e) {
+    console.log('Transcribe error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/speak', async (req, res) => {
   try {
     const { text } = req.body;
+    console.log('Speaking:', text?.substring(0, 60));
     const r = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KEY}` },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini-tts',
-        input: text,
-        voice: 'alloy',
-        speed: 1.0,
-        response_format: 'mp3',
-        instructions: 'Speak in Georgian language (ქართული). Pronounce all Georgian words naturally.'
-      })
+      body: JSON.stringify({ model: 'tts-1', input: text, voice: 'alloy', speed: 1.0, response_format: 'mp3' })
     });
     if (!r.ok) {
-      // fallback to tts-1
-      const r2 = await fetch('https://api.openai.com/v1/audio/speech', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KEY}` },
-        body: JSON.stringify({ model: 'tts-1', input: text, voice: 'alloy', speed: 1.0, response_format: 'mp3' })
-      });
-      const buf = await r2.arrayBuffer();
-      res.set('Content-Type', 'audio/mpeg');
-      return res.send(Buffer.from(buf));
+      const err = await r.text();
+      console.log('TTS error:', err);
+      return res.status(500).json({ error: err });
     }
     const buf = await r.arrayBuffer();
+    console.log('Audio bytes:', buf.byteLength);
     res.set('Content-Type', 'audio/mpeg');
     res.send(Buffer.from(buf));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    console.log('Speak error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.listen(process.env.PORT || 3000, () => console.log('MechMind running'));
