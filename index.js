@@ -6,7 +6,6 @@ const FormData = require('form-data');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
-
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
@@ -61,26 +60,36 @@ app.post('/transcribe', upload.single('audio'), async (req, res) => {
   }
 });
 
-// TTS — use alloy voice which handles Georgian script better
 app.post('/speak', async (req, res) => {
   try {
     const key = getKey(req);
     const { text } = req.body;
+    console.log('Speaking:', text.substring(0, 50));
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
-        model: 'tts-1-hd',
+        model: 'tts-1',
         input: text,
-        voice: 'shimmer',
-        speed: 0.9,
+        voice: 'alloy',
+        speed: 1.0,
         response_format: 'mp3'
       })
     });
+    console.log('TTS status:', response.status);
+    if (!response.ok) {
+      const err = await response.text();
+      console.log('TTS error:', err);
+      return res.status(response.status).json({ error: err });
+    }
     const buffer = await response.arrayBuffer();
+    console.log('Audio size:', buffer.byteLength);
     res.set('Content-Type', 'audio/mpeg');
+    res.set('Content-Length', buffer.byteLength);
+    res.set('Access-Control-Allow-Origin', '*');
     res.send(Buffer.from(buffer));
   } catch (e) {
+    console.log('Speak error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
