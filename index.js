@@ -45,6 +45,9 @@ app.post('/transcribe', upload.single('audio'), async (req, res) => {
     else if (req.file.mimetype.includes('wav')) filename = 'voice.wav';
     form.append('file', req.file.buffer, { filename, contentType: req.file.mimetype });
     form.append('model', 'whisper-1');
+    // Read language from request body
+    const lang = req.body?.lang || 'en';
+    form.append('language', lang);
     form.append('response_format', 'json');
     const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
