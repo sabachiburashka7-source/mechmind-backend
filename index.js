@@ -11,37 +11,41 @@ app.use(express.json({ limit: '10mb' }));
 
 const KEY = process.env.OPENAI_API_KEY;
 
-app.get('/', (req, res) => res.json({ status: 'MechMind backend running' }));
+app.get('/', (req, res) => {
+  console.log('Health check - KEY exists:', !!KEY, 'KEY prefix:', KEY ? KEY.substring(0,7) : 'NONE');
+  res.json({ status: 'MechMind backend running', keySet: !!KEY });
+});
 
 app.post('/chat', async (req, res) => {
   try {
     const { messages, system } = req.body;
+    console.log('Chat request - messages:', messages?.length, 'KEY:', KEY ? KEY.substring(0,7) : 'MISSING');
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KEY}` },
       body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'system', content: system }, ...messages], max_tokens: 500, temperature: 0.85 })
     });
-    res.json(await r.json());
-  } catch (e) { res.status(500).json({ error: { message: e.message } }); }
+    const data = await r.json();
+    console.log('Chat response status:', r.status, 'error:', data.error?.message || 'none');
+    res.json(data);
+  } catch (e) {
+    console.log('Chat error:', e.message);
+    res.status(500).json({ error: { message: e.message } });
+  }
 });
 
 app.post('/transcribe', upload.single('audio'), async (req, res) => {
   try {
     if (!req.file) { return res.status(400).json({ error: 'No audio received' }); }
     console.log('Audio size:', req.file.size, 'type:', req.file.mimetype);
-
     const form = new FormData();
-    // Try all common Android formats
     let filename = 'voice.webm';
     if (req.file.mimetype.includes('mp4') || req.file.mimetype.includes('m4a')) filename = 'voice.mp4';
     else if (req.file.mimetype.includes('ogg')) filename = 'voice.ogg';
     else if (req.file.mimetype.includes('wav')) filename = 'voice.wav';
-
     form.append('file', req.file.buffer, { filename, contentType: req.file.mimetype });
     form.append('model', 'whisper-1');
-    // No language lock — let Whisper detect automatically (works better for testing)
     form.append('response_format', 'json');
-
     const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${KEY}`, ...form.getHeaders() },
