@@ -96,12 +96,13 @@ wss.on('connection', (browser, req) => {
         if (!setupDone || gemini.readyState !== WebSocket.OPEN) return;
         // Backend sends audio to Gemini in correct format
         // Try all possible formats - log which one works
-        // Correct format: Blob object with data + mimeType
+        // Try inline_data format which is standard in Gemini API
+        // Proto-based snake_case format
         const audioMsg = {
           realtimeInput: {
             audio: {
-              data: msg.data,
-              mimeType: 'audio/pcm;rate=16000'
+              mime_type: 'audio/pcm;rate=16000',
+              data: msg.data
             }
           }
         };
