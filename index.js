@@ -98,10 +98,7 @@ wss.on('connection', (browser, req) => {
         // Try all possible formats - log which one works
         const audioMsg = {
           realtimeInput: {
-            audio: {
-              data: msg.data,
-              mimeType: 'audio/pcm;rate=16000'
-            }
+            audio: msg.data
           }
         };
         console.log('Sending audio format:', JSON.stringify(audioMsg).substring(0, 80));
