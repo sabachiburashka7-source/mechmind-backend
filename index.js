@@ -12,7 +12,6 @@ app.use(express.json({ limit: '10mb' }));
 const KEY = process.env.OPENAI_API_KEY;
 
 app.get('/', (req, res) => {
-  console.log('Health check - KEY exists:', !!KEY, 'KEY prefix:', KEY ? KEY.substring(0,7) : 'NONE');
   res.json({ status: 'MechMind backend running', keySet: !!KEY });
 });
 
@@ -36,20 +35,19 @@ app.post('/chat', async (req, res) => {
 
 app.post('/transcribe', upload.single('audio'), async (req, res) => {
   try {
-    if (!req.file) { return res.status(400).json({ error: 'No audio received' }); }
+    if (!req.file) return res.status(400).json({ error: 'No audio received' });
     console.log('Audio size:', req.file.size, 'type:', req.file.mimetype);
+
     const form = new FormData();
     let filename = 'voice.webm';
     if (req.file.mimetype.includes('mp4') || req.file.mimetype.includes('m4a')) filename = 'voice.mp4';
     else if (req.file.mimetype.includes('ogg')) filename = 'voice.ogg';
-    else if (req.file.mimetype.includes('wav')) filename = 'voice.wav';
+
     form.append('file', req.file.buffer, { filename, contentType: req.file.mimetype });
     form.append('model', 'whisper-1');
-    // Read language from request body
-    const lang = req.body?.lang || 'en';
-    form.append('language', lang);
-    form.append('language', 'ka');
+    // NO language lock — Whisper auto-detects Georgian perfectly
     form.append('response_format', 'json');
+
     const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${KEY}`, ...form.getHeaders() },
@@ -71,7 +69,13 @@ app.post('/speak', async (req, res) => {
     const r = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KEY}` },
-      body: JSON.stringify({ model: 'tts-1', input: text, voice: 'alloy', speed: 1.0, response_format: 'mp3' })
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: 'alloy',
+        speed: 1.0,
+        response_format: 'mp3'
+      })
     });
     if (!r.ok) {
       const err = await r.text();
