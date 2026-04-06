@@ -28,7 +28,7 @@ app.post('/chat', async (req, res) => {
         body: JSON.stringify({
           system_instruction: { parts: [{ text: system }] },
           contents: messages,
-          generationConfig: { maxOutputTokens: 300 }
+          generationConfig: { maxOutputTokens: 800 }
         })
       }
     );
