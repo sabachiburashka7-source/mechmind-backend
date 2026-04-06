@@ -31,9 +31,10 @@ wss.on('connection', (browserWs, req) => {
   console.log('Connecting to Gemini Live...');
   const geminiWs = new WebSocket(GEMINI_URL);
 
-  // Keep-alive ping every 20s
+  // Keep-alive: ping both connections every 20s using native WS ping
   const pingInterval = setInterval(() => {
     if (browserWs.readyState === WebSocket.OPEN) browserWs.ping();
+    if (geminiWs.readyState === WebSocket.OPEN) geminiWs.ping();
   }, 20000);
 
   geminiWs.on('open', () => {
