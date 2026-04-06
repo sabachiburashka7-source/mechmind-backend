@@ -48,6 +48,7 @@ app.post('/transcribe', upload.single('audio'), async (req, res) => {
     // Read language from request body
     const lang = req.body?.lang || 'en';
     form.append('language', lang);
+    form.append('language', 'ka');
     form.append('response_format', 'json');
     const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
