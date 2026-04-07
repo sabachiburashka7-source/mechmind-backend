@@ -101,7 +101,7 @@ wss.on('connection', (browser, req) => {
         const audioMsg = {
           realtimeInput: {
             audio: {
-              mime_type: 'audio/pcm;rate=16000',
+              mimeType: 'audio/pcm;rate=16000',
               data: msg.data
             }
           }
