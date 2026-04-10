@@ -150,3 +150,27 @@ wss.on('connection', (browser, req) => {
 });
 
 server.listen(process.env.PORT || 3000, () => console.log('MechMind proxy running'));
+
+// OBD WebSocket bridge
+wss.on('connection', (browser, req) => {
+  if (req.url === '/obd') {
+    console.log('OBD bridge connection request');
+    browser.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'OBD bridge - pair ELM327 in Android Bluetooth settings first, then connect here' 
+    }));
+    
+    browser.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (msg.type === 'connect_obd') {
+          // This will be implemented when we add native Android Bluetooth
+          browser.send(JSON.stringify({ 
+            type: 'error', 
+            message: 'Native Bluetooth bridge coming soon. Use paired device.' 
+          }));
+        }
+      } catch(e) {}
+    });
+  }
+});
