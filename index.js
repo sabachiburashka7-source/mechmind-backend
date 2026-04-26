@@ -174,3 +174,13 @@ wss.on('connection', (browser, req) => {
     });
   }
 });
+
+// Temp diagnostic: list Gemini models that support bidiGenerateContent
+app.get('/models', async (req, res) => {
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1alpha/models?key=' + GEMINI_KEY + '&pageSize=200');
+    const data = await r.json();
+    const live = (data.models || []).filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('bidiGenerateContent'));
+    res.json({ total: data.models ? data.models.length : 0, liveModels: live.map(m => m.name) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
