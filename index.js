@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/proxy' });
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_WS = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=' + GEMINI_KEY;
+const GEMINI_WS = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + GEMINI_KEY;
 
 app.get('/', (req, res) => res.json({ status: 'MechMind running', gemini: !!GEMINI_KEY }));
 
